@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRC - DS4 tool</title>
+
+    <style type="text/css">
+        .top-ratio {
+            background-color: #8ef78e;
+        }
+        .todo::before {
+            content: "\01F3CE";
+            padding-right: .2rem;
+        }
+        .sc {
+            background-color: #aa8ed6;
+            border: 1px solid #aa8ed6;
+            border-radius: 45%;
+            padding: .1rem;
+            font-size: .8em;
+        }
+    </style>
+</head>
+
+<body>
+
+<form id="sc-calcul" style="width:100%; max-width: 300px;">
+
+    <div style="padding: .5rem; text-align: center;">
+        <label>Objectif
+            <input id="objectif" type="number" name="objectif" value="20000">
+        </label>
+    </div>
+
+    <fieldset id="run1" class="js-run" data-run="1">
+        <legend>Run 1</legend>
+        <label>SP <input type="number" name="r1-sp" value="2250" size="6"></label>
+        <label>SC <input type="number" name="r1-sc" value="840" size="6"></label>
+        <div class="todo"></div>
+    </fieldset>
+
+    <fieldset id="run2" class="js-run" data-run="2">
+        <legend>Run 2</legend>
+        <label>SP <input type="number" name="r2-sp" value="3375" size="6"></label>
+        <label>SC <input type="number" name="r2-sc" value="1200" size="6"></label>
+        <div class="todo"></div>
+    </fieldset>
+
+    <fieldset id="run3" class="js-run"  data-run="3">
+        <legend>Run 3</legend>
+        <label>SP <input type="number" name="r3-sp" value="5275" size="6"></label>
+        <label>SC <input type="number" name="r3-sc" value="1400" size="6"></label>
+        <div class="todo"></div>
+    </fieldset>
+
+    <div style="padding: .5rem; text-align: center;">
+        <button type="submit" id="js-submit">Calculer</button>
+    </div>
+</form>
+
+<div id="sc-calcul-output">
+
+</div>
+
+</body>
+
+<script>
+let form   = document.getElementById('sc-calcul');
+let output = document.getElementById('sc-calcul-output');
+let spSc = {
+    runs: [
+
+    ],
+    best: null,
+};
+
+form.addEventListener('submit', (elm) => {
+    elm.preventDefault();
+
+    let objectif = parseInt(document.getElementById('objectif').value);
+    let runsFields = document.querySelectorAll('.js-run');
+
+    runsFields.forEach((run) => {
+        let idxRun = parseInt(run.dataset.run)-1;
+        spSc.runs[idxRun] = {
+            run: run.dataset.run,
+            sp: parseInt(run.querySelector('[name="r' + run.dataset.run + '-sp"').value),
+            sc: parseInt(run.querySelector('[name="r' + run.dataset.run + '-sc"').value),
+            runTodo: 0
+        };
+
+        spSc.runs[idxRun].ratioScSp = spSc.runs[idxRun].sc / spSc.runs[idxRun].sp;
+
+        spSc.runs[idxRun].baseRunRatio = objectif / spSc.runs[idxRun].sp;
+        spSc.runs[idxRun].baseRun    = parseInt(spSc.runs[idxRun].baseRunRatio);
+        spSc.runs[idxRun].baseSpGain = spSc.runs[idxRun].baseRun * spSc.runs[idxRun].sp;
+        while(spSc.runs[idxRun].baseSpGain < objectif) {
+            spSc.runs[idxRun].baseRun++;
+            spSc.runs[idxRun].baseSpGain = spSc.runs[idxRun].baseRun * spSc.runs[idxRun].sp;
+        }
+        spSc.runs[idxRun].baseScGain = spSc.runs[idxRun].baseRun * spSc.runs[idxRun].sc;
+
+        console.log(spSc.runs[idxRun]);
+
+        if(null === spSc.best
+            ||spSc.runs[idxRun].ratio > spSc.best.ratio)
+        {
+            spSc.best = spSc.runs[idxRun];
+        }
+    });
+
+    console.log(spSc);
+
+    // On prend la run avec le meilleur ratio SC/SP si on dépasse l'objectif on lui retire un run
+    if(spSc.best.baseSpGain > objectif) {
+        spSc.best.runTodo = spSc.best.baseRun-1;
+    }
+    let baseSp = spSc.best.runTodo * spSc.best.sp;
+    let testRun = 1;
+    let maxTestRun = spSc.runs.length -1;
+    let testBaseSp;
+    while(baseSp < objectif) {
+
+        if(spSc.runs[testRun].run === spSc.best.run) {
+            spSc.runs[testRun].runTodo = spSc.runs[testRun].baseRun;
+        }
+        else {
+            spSc.runs[testRun].runTodo = 0;
+        }
+
+        testBaseSp = baseSp + spSc.runs[testRun].sp;
+
+        if(testBaseSp >= objectif  && testRun < maxTestRun) {
+            if(spSc.runs[testRun].runTodo > 0) {
+                spSc.runs[testRun].runTodo--;
+            }
+            testRun++;
+            continue;
+        }
+        else if (testBaseSp >= objectif && testRun === maxTestRun) {
+            spSc.runs[testRun].runTodo++;
+        }
+        else if (testBaseSp < objectif) {
+            spSc.runs[testRun].runTodo++;
+        }
+
+        baseSp = testBaseSp;
+    }
+
+    elmTopRatio = document.getElementById('run' + spSc.best.run);
+    elmTopRatio.classList.add('top-ratio');
+
+    output.innerHTML += 'Meilleur Ratio : ' + spSc.best.run + '<br>';
+    output.innerHTML += 'Nb Run : ' + spSc.best.runTodo  + '<br>';
+
+    let totalScGain = 0;
+    spSc.runs.forEach((r) => {
+        let elmRunTodo = document.querySelector('[data-run="' + r.run + '"] > .todo');
+        r.scGain = r.runTodo * r.sc;
+        totalScGain += r.scGain;
+        elmRunTodo.innerHTML = r.runTodo + ' :  ' + r.scGain + ' <span class="sc">SC</span>';
+    });
+
+    output.innerHTML += 'Total SC : ' + totalScGain + '<br><br>';
+
+    output.innerHTML += 'Détails : <br>';
+    output.innerHTML += '<code>' + JSON.stringify(spSc, undefined, 2) + '</code>';
+
+});
+
+
+// let bestRatio = 0;
+
+// let outputStr = '';
+// for(let i in spSc.runs) {
+//     let ratio = (spSc[i] / i);
+
+//     if(ratio > bestRatio) {
+//         bestRatio = ratio;
+//     }
+
+//     outputStr += i + ' => ' + spSc[i] + ' : ' + ratio + '<br>';
+// }
+// console.log(outputStr);
+// ;
+</script>
+
+</html>
