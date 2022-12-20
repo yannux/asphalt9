@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FRC - DS4 tool</title>
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css">
     <style type="text/css">
         .top-ratio {
             background-color: #8ef78e;
@@ -20,13 +20,41 @@
             padding: .1rem;
             font-size: .8em;
         }
+        .pure-table {
+            width: 100%;
+        }
+        .missions-wrapper {
+            display: flex;
+            flex-flow: column;
+            width:100%;
+        }
+
+        @media screen and (min-width: 768px) {
+            .missions-wrapper {
+                flex-flow: row nowrap;
+                overflow: visible;
+            }
+            .mission {
+                flex-grow: 1;
+            }
+
+            .mission + .mission {
+                margin-left: 2%;
+            }
+        }
+
     </style>
 </head>
 
 <body>
 
 <form id="sc-calcul" style="width:100%; max-width: 300px;">
-
+    <div style="padding: .5rem; text-align: center;">
+        <select id="select-step">
+            <option value="">Choisir une étape</option>
+            <option value="an-old-friend.json">An Old Friend</option>
+        </select>
+    </div>
     <div style="padding: .5rem; text-align: center;">
         <label>Objectif
             <input id="objectif" type="number" name="objectif" value="">
@@ -50,7 +78,7 @@
     </fieldset>
 
     <fieldset id="run3" class="js-run"  data-run="3">
-        <legend>Run 3 (grande)</legend>
+        <legend>Run 3 (grande</legend>
         <label>SP <input type="number" name="r3-sp" value="" size="6"></label>
         <label>SC <input type="number" name="r3-sc" value="" size="6"></label>
         <div>Combo full : </div>
@@ -66,19 +94,167 @@
 
 </div>
 
+
+<div class="step-wrapper">
+    <h1 class="step-tittle"></h1>
+    <div class="missions-wrapper">
+
+    </div>
+</div>
+
+<template id="tpl-mission">
+    <div class="mission">
+        <h3 class="title"></h3>
+        <h4 class="car"></h4>
+        <table class="pure-table resume">
+            <caption>Level resume</caption>
+            <tbody>
+                <tr>
+                    <th>S Points</th>
+                    <td class="sp"></td>
+                </tr>
+                <tr>
+                    <th>S Coins</th>
+                    <td class="sc"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</template>
+<template id="tpl-hazard">
+    <table class="pure-table pure-table-horizontal hazard">
+        <caption></caption>
+        <tbody>
+            <tr>
+                <td colspan="1" class="stars"></td>
+                <td colspan="2" class="rank"></td>
+            </tr>
+            <tr>
+                <td colspan="3">Missions</td>
+            </tr>
+            <tr class="m-0">
+                <td class="sp"></td>
+                <td class="sc"></td>
+                <td class="ratio"></td>
+            </tr>
+            <tr class="m-1" hidden>
+                <td class="sp"></td>
+                <td class="sc"></td>
+                <td class="ratio"></td>
+            </tr>
+            <tr class="m-2" hidden>
+                <td class="sp"></td>
+                <td class="sc"></td>
+                <td class="ratio"></td>
+            </tr>
+        </tbody>
+    </table>
+</template>
+
 </body>
 
 <script>
+let steps = {
+    'an-old-friend.json': 'An Olf Friend',
+};
 let form   = document.getElementById('sc-calcul');
 let output = document.getElementById('sc-calcul-output');
-let spSc = {
-    runs: [
-
-    ],
-    best: null,
-};
 
 
+let tplMission = document.querySelector('#tpl-mission');
+let tplHazard = document.querySelector('#tpl-hazard');
+
+
+const myRequest = new Request('an-old-friend.json');
+
+fetch(myRequest)
+  .then((response) => response.json())
+  .then((data) => {
+    let stepWrapper = document.querySelector('.step-wrapper');
+    stepWrapper.querySelector('.step-tittle').innerHTML = data.title;
+
+    let missionsWrapper = stepWrapper.querySelector('.missions-wrapper');
+
+    for(let i in data.missions) {
+        let mission = data.missions[i];
+        let elmMission = tplMission.content.cloneNode(true);
+
+        elmMission.querySelector('.title').innerHTML      = mission.title;
+        elmMission.querySelector('.car').innerHTML        = mission.car;
+        elmMission.querySelector('.resume .sp').innerHTML = mission.sp;
+        elmMission.querySelector('.resume .sc').innerHTML = mission.sc;
+
+
+        for(let h in mission.hazard) {
+            let spSc = {
+                runs: [
+
+                ],
+                best: null,
+            };
+            let hazard  = mission.hazard[h];
+            let elmHazard  = tplHazard.content.cloneNode(true);
+            let hazardBest = null;
+
+            elmHazard.querySelector('caption').innerHTML = 'Hazard level ' + hazard.level;
+            elmHazard.querySelector('.stars').innerHTML = hazard.stars + '⭐';
+            elmHazard.querySelector('.rank').innerHTML  = 'R: ' + hazard.rank;
+
+            for(let hm in hazard.missions) {
+                let hazardMission = hazard.missions[hm];
+                let elmHazardMission = elmHazard.querySelector('.m-' + hm);
+                elmHazardMission.removeAttribute('hidden');
+                elmHazardMission.querySelector('.sp').innerHTML = hazardMission.sp;
+                elmHazardMission.querySelector('.sc').innerHTML = hazardMission.sc;
+                elmHazardMission.querySelector('.ratio').innerHTML = (hazardMission.sc/hazardMission.sp).toFixed(2);
+
+
+                spSc.runs.push(calculRun(mission.sp, hazardMission));
+
+                if(null === spSc.best
+                    || hazardMission.ratio > spSc.best.ratio)
+                {
+                    spSc.best = hazardMission;
+                }
+            }
+
+            console.log(spSc);
+            // On prend la run avec le meilleur ratio SC/SP si on dépasse l'objectif on lui retire un run
+            if(spSc.best.baseSpGain > mission.sp) {
+                spSc.best.runTodo = spSc.best.baseRun-1;
+                if(undefined !== spSc.runs[1]) {
+                    spSc.runs[1].runTodo = 0;
+                    spSc.runs[2].runTodo = 1;
+                }
+            }
+            else if(spSc.best.baseSpGain == mission.sp) {
+                spSc.best.runTodo = spSc.best.baseRun-2;
+                if(undefined !== spSc.runs[1]) {
+                    spSc.runs[1].runTodo = 1;
+                    spSc.runs[2].runTodo = 1;
+                }
+            }
+
+
+            let totalScGain = 0;
+            let elmBestCombo = document.createElement('p');
+            elmBestCombo.innerHTML += 'Best combo :<br>';
+            spSc.runs.forEach((r) => {
+                r.scGain = r.runTodo * r.sc;
+                totalScGain += r.scGain;
+
+                elmBestCombo.innerHTML += 'Run ' + r.sp +  ' SP</strong> : ' + r.runTodo + ' run pour <strong>' + r.scGain + ' SC</strong><br>';
+            });
+
+            elmHazard.appendChild(elmBestCombo);
+
+            elmMission.querySelector('.mission').appendChild(elmHazard);
+
+        }
+
+        missionsWrapper.appendChild(elmMission);
+    }
+  });
 // spSc.runs[idxRun]
 function calculRun(objectif, run) {
     run.ratioScSp = run.sc / run.sp;
@@ -91,9 +267,11 @@ function calculRun(objectif, run) {
     }
     run.baseScGain = run.baseRun * run.sc;
 
-    let elmRunTodo = document.querySelector('[data-run="' + run.run + '"] > .todo');
+    // let elmRunTodo = document.querySelector('[data-run="' + run.run + '"] > .todo');
     // run.scGain = run.baseRun * run.sc;
-    elmRunTodo.innerHTML = run.baseRun + ' :  ' + run.baseScGain + ' <span class="sc">SC</span>&nbsp;' + run.baseSpGain + ' <span class="sc">SP</span>';
+    // elmRunTodo.innerHTML = run.baseRun + ' :  ' + run.baseScGain + ' <span class="sc">SC</span>&nbsp;' + run.baseSpGain + ' <span class="sc">SP</span>';
+    //
+    return run;
 }
 
 form.addEventListener('submit', (elm) => {
@@ -121,8 +299,6 @@ form.addEventListener('submit', (elm) => {
         }
     });
     console.log(spSc);
-
-
 
     // On prend la run avec le meilleur ratio SC/SP si on dépasse l'objectif on lui retire un run
     if(spSc.best.baseSpGain > objectif) {
@@ -180,7 +356,7 @@ form.addEventListener('submit', (elm) => {
         totalScGain += r.scGain;
         // elmRunTodo.innerHTML = r.runTodo + ' :  ' + r.scGain + ' <span class="sc">SC</span>';
 
-        output.innerHTML += 'Run ' + r.run + ' : ' + r.runTodo + ' run pour ' + r.scGain + ' SC<br>';
+        output.innerHTML += 'Run ' + r.run + ' <strong>' + r.sp +  ' SP</strong> : ' + r.runTodo + ' run pour <strong>' + r.scGain + ' SC</strong><br>';
     });
 
     output.innerHTML += 'Total SC : ' + totalScGain + '<br><br>';
@@ -189,22 +365,6 @@ form.addEventListener('submit', (elm) => {
     output.innerHTML += '<code>' + JSON.stringify(spSc, undefined, 2) + '</code>';
 
 });
-
-
-// let bestRatio = 0;
-
-// let outputStr = '';
-// for(let i in spSc.runs) {
-//     let ratio = (spSc[i] / i);
-
-//     if(ratio > bestRatio) {
-//         bestRatio = ratio;
-//     }
-
-//     outputStr += i + ' => ' + spSc[i] + ' : ' + ratio + '<br>';
-// }
-// console.log(outputStr);
-// ;
 </script>
 
 </html>
