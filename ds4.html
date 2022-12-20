@@ -220,21 +220,24 @@ fetch(myRequest)
 
             console.log(spSc);
             // On prend la run avec le meilleur ratio SC/SP si on dépasse l'objectif on lui retire un run
-            if(spSc.best.baseSpGain > mission.sp) {
+            if(spSc.best.baseSpGain > mission.sp && spSc.runs.length > 1) {
+                console.log('ici');
                 spSc.best.runTodo = spSc.best.baseRun-1;
                 if(undefined !== spSc.runs[1]) {
                     spSc.runs[1].runTodo = 0;
                     spSc.runs[2].runTodo = 1;
                 }
             }
-            else if(spSc.best.baseSpGain == mission.sp) {
+            else if(spSc.best.baseSpGain == mission.sp && spSc.runs.length > 1) {
                 spSc.best.runTodo = spSc.best.baseRun-2;
                 if(undefined !== spSc.runs[1]) {
                     spSc.runs[1].runTodo = 1;
                     spSc.runs[2].runTodo = 1;
                 }
             }
-
+            else if(spSc.best.baseSpGain == mission.sp && spSc.runs.length === 1) {
+                spSc.best.runTodo = spSc.best.baseRun;
+            }
 
             let totalScGain = 0;
             let elmBestCombo = document.createElement('p');
