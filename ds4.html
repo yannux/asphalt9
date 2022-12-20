@@ -29,28 +29,31 @@
 
     <div style="padding: .5rem; text-align: center;">
         <label>Objectif
-            <input id="objectif" type="number" name="objectif" value="20000">
+            <input id="objectif" type="number" name="objectif" value="">
         </label>
     </div>
 
     <fieldset id="run1" class="js-run" data-run="1">
-        <legend>Run 1</legend>
+        <legend>Run 1 (petite)</legend>
         <label>SP <input type="number" name="r1-sp" value="" size="6"></label>
         <label>SC <input type="number" name="r1-sc" value="" size="6"></label>
+        <div>Combo full : </div>
         <div class="todo"></div>
     </fieldset>
 
     <fieldset id="run2" class="js-run" data-run="2">
-        <legend>Run 2</legend>
+        <legend>Run 2 (moyenne)</legend>
         <label>SP <input type="number" name="r2-sp" value="" size="6"></label>
         <label>SC <input type="number" name="r2-sc" value="" size="6"></label>
+        <div>Combo full : </div>
         <div class="todo"></div>
     </fieldset>
 
     <fieldset id="run3" class="js-run"  data-run="3">
-        <legend>Run 3</legend>
+        <legend>Run 3 (grande)</legend>
         <label>SP <input type="number" name="r3-sp" value="" size="6"></label>
         <label>SC <input type="number" name="r3-sc" value="" size="6"></label>
+        <div>Combo full : </div>
         <div class="todo"></div>
     </fieldset>
 
@@ -75,6 +78,24 @@ let spSc = {
     best: null,
 };
 
+
+// spSc.runs[idxRun]
+function calculRun(objectif, run) {
+    run.ratioScSp = run.sc / run.sp;
+    run.baseRunRatio = objectif / run.sp;
+    run.baseRun    = parseInt(run.baseRunRatio);
+    run.baseSpGain = run.baseRun * run.sp;
+    while(run.baseSpGain < objectif) {
+        run.baseRun++;
+        run.baseSpGain = run.baseRun * run.sp;
+    }
+    run.baseScGain = run.baseRun * run.sc;
+
+    let elmRunTodo = document.querySelector('[data-run="' + run.run + '"] > .todo');
+    // run.scGain = run.baseRun * run.sc;
+    elmRunTodo.innerHTML = run.baseRun + ' :  ' + run.baseScGain + ' <span class="sc">SC</span>&nbsp;' + run.baseSpGain + ' <span class="sc">SP</span>';
+}
+
 form.addEventListener('submit', (elm) => {
     elm.preventDefault();
 
@@ -90,76 +111,76 @@ form.addEventListener('submit', (elm) => {
             runTodo: 0
         };
 
-        spSc.runs[idxRun].ratioScSp = spSc.runs[idxRun].sc / spSc.runs[idxRun].sp;
-
-        spSc.runs[idxRun].baseRunRatio = objectif / spSc.runs[idxRun].sp;
-        spSc.runs[idxRun].baseRun    = parseInt(spSc.runs[idxRun].baseRunRatio);
-        spSc.runs[idxRun].baseSpGain = spSc.runs[idxRun].baseRun * spSc.runs[idxRun].sp;
-        while(spSc.runs[idxRun].baseSpGain < objectif) {
-            spSc.runs[idxRun].baseRun++;
-            spSc.runs[idxRun].baseSpGain = spSc.runs[idxRun].baseRun * spSc.runs[idxRun].sp;
-        }
-        spSc.runs[idxRun].baseScGain = spSc.runs[idxRun].baseRun * spSc.runs[idxRun].sc;
-
+        calculRun(objectif, spSc.runs[idxRun]);
         console.log(spSc.runs[idxRun]);
 
         if(null === spSc.best
-            ||spSc.runs[idxRun].ratio > spSc.best.ratio)
+            || spSc.runs[idxRun].ratio > spSc.best.ratio)
         {
             spSc.best = spSc.runs[idxRun];
         }
     });
-
     console.log(spSc);
+
+
 
     // On prend la run avec le meilleur ratio SC/SP si on dépasse l'objectif on lui retire un run
     if(spSc.best.baseSpGain > objectif) {
         spSc.best.runTodo = spSc.best.baseRun-1;
+        spSc.runs[1].runTodo = 0;
+        spSc.runs[2].runTodo = 1;
     }
-    let baseSp = spSc.best.runTodo * spSc.best.sp;
-    let testRun = 1;
-    let maxTestRun = spSc.runs.length -1;
-    let testBaseSp;
-    while(baseSp < objectif) {
-
-        if(spSc.runs[testRun].run === spSc.best.run) {
-            spSc.runs[testRun].runTodo = spSc.runs[testRun].baseRun;
-        }
-        else {
-            spSc.runs[testRun].runTodo = 0;
-        }
-
-        testBaseSp = baseSp + spSc.runs[testRun].sp;
-
-        if(testBaseSp >= objectif  && testRun < maxTestRun) {
-            if(spSc.runs[testRun].runTodo > 0) {
-                spSc.runs[testRun].runTodo--;
-            }
-            testRun++;
-            continue;
-        }
-        else if (testBaseSp >= objectif && testRun === maxTestRun) {
-            spSc.runs[testRun].runTodo++;
-        }
-        else if (testBaseSp < objectif) {
-            spSc.runs[testRun].runTodo++;
-        }
-
-        baseSp = testBaseSp;
+    else if(spSc.best.baseSpGain == objectif) {
+        spSc.best.runTodo = spSc.best.baseRun-2;
+        spSc.runs[1].runTodo = 1;
+        spSc.runs[2].runTodo = 1;
     }
+
+    // let baseSp = spSc.best.runTodo * spSc.best.sp;
+    // let testRun = 1;
+    // let maxTestRun = spSc.runs.length -1;
+    // let testBaseSp;
+    // while(baseSp < objectif) {
+
+    //     if(spSc.runs[testRun].run === spSc.best.run) {
+    //         spSc.runs[testRun].runTodo = spSc.runs[testRun].baseRun;
+    //     }
+    //     else {
+    //         spSc.runs[testRun].runTodo = 0;
+    //     }
+
+    //     testBaseSp = baseSp + spSc.runs[testRun].sp;
+
+    //     if(testBaseSp >= objectif  && testRun < maxTestRun) {
+    //         if(spSc.runs[testRun].runTodo > 0) {
+    //             spSc.runs[testRun].runTodo--;
+    //         }
+    //         testRun++;
+    //         continue;
+    //     }
+    //     else if (testBaseSp >= objectif && testRun === maxTestRun) {
+    //         spSc.runs[testRun].runTodo++;
+    //     }
+    //     else if (testBaseSp < objectif) {
+    //         spSc.runs[testRun].runTodo++;
+    //     }
+
+    //     baseSp = testBaseSp;
+    // }
 
     elmTopRatio = document.getElementById('run' + spSc.best.run);
     elmTopRatio.classList.add('top-ratio');
 
-    output.innerHTML += 'Meilleur Ratio : ' + spSc.best.run + '<br>';
-    output.innerHTML += 'Nb Run : ' + spSc.best.runTodo  + '<br>';
+    output.innerHTML += 'Meilleur combo <br>';
 
     let totalScGain = 0;
     spSc.runs.forEach((r) => {
         let elmRunTodo = document.querySelector('[data-run="' + r.run + '"] > .todo');
         r.scGain = r.runTodo * r.sc;
         totalScGain += r.scGain;
-        elmRunTodo.innerHTML = r.runTodo + ' :  ' + r.scGain + ' <span class="sc">SC</span>';
+        // elmRunTodo.innerHTML = r.runTodo + ' :  ' + r.scGain + ' <span class="sc">SC</span>';
+
+        output.innerHTML += 'Run ' + r.run + ' : ' + r.runTodo + ' run pour ' + r.scGain + ' SC<br>';
     });
 
     output.innerHTML += 'Total SC : ' + totalScGain + '<br><br>';
