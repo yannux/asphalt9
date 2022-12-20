@@ -170,7 +170,7 @@ elmStepSelector.addEventListener('change', (e) => {
     if('' ===  e.target.value.trim()) {
         return fals;e
     }
-    const myRequest = new Request('/' + e.target.value);
+    const myRequest = new Request(e.target.value);
     fetch(myRequest)
     .then((response) => response.json())
     .then((data) => {
@@ -178,7 +178,7 @@ elmStepSelector.addEventListener('change', (e) => {
     });
 });
 
-const myRequest = new Request('/' + elmStepSelector.options[1].value);
+const myRequest = new Request(elmStepSelector.options[1].value);
     fetch(myRequest)
     .then((response) => response.json())
     .then((data) => {
