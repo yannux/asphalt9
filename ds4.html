@@ -6,6 +6,9 @@
     <title>FRC - DS4 tool</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css">
     <style type="text/css">
+        body {
+            padding: 1rem;
+        }
         .top-ratio {
             background-color: #8ef78e;
         }
@@ -49,12 +52,6 @@
 <body>
 
 <form id="sc-calcul" style="width:100%; max-width: 300px;">
-    <!-- <div style="padding: .5rem; text-align: center;">
-        <select id="select-step">
-            <option value="">Choisir une étape</option>
-            <option value="an-old-friend.json">An Old Friend</option>
-        </select>
-    </div> -->
     <div style="padding: .5rem; text-align: center;">
         <label>Objectif
             <input id="objectif" type="number" name="objectif" value="">
@@ -95,8 +92,16 @@
 </div>
 
 
+<h1 id="etapes">Étapes</h1>
+<div style="padding: .5rem;">
+    <select id="step-selector">
+        <option value="">Choisir une étape</option>
+        <option value="an-old-friend.json">An Old Friend</option>
+        <option value="a-respected-rival.json">A Respected Rival</option>
+    </select>
+</div>
 <div class="step-wrapper">
-    <h1 class="step-tittle"></h1>
+    <h2 class="step-tittle"></h2>
     <div class="missions-wrapper">
 
     </div>
@@ -154,26 +159,38 @@
 </body>
 
 <script>
-let steps = {
-    'an-old-friend.json': 'An Olf Friend',
-};
 let form   = document.getElementById('sc-calcul');
 let output = document.getElementById('sc-calcul-output');
+const tplMission = document.querySelector('#tpl-mission');
+const tplHazard = document.querySelector('#tpl-hazard');
 
+let elmStepSelector = document.querySelector('#step-selector');
+elmStepSelector.addEventListener('change', (e) => {
+    e.preventDefault();
+    if('' ===  e.target.value.trim()) {
+        return fals;e
+    }
+    const myRequest = new Request('/' + e.target.value);
+    fetch(myRequest)
+    .then((response) => response.json())
+    .then((data) => {
+        renderStep(data);
+    });
+});
 
-let tplMission = document.querySelector('#tpl-mission');
-let tplHazard = document.querySelector('#tpl-hazard');
+const myRequest = new Request('/' + elmStepSelector.options[1].value);
+    fetch(myRequest)
+    .then((response) => response.json())
+    .then((data) => {
+        renderStep(data);
+    });
 
-
-const myRequest = new Request('an-old-friend.json');
-
-fetch(myRequest)
-  .then((response) => response.json())
-  .then((data) => {
+function renderStep(data)
+{
     let stepWrapper = document.querySelector('.step-wrapper');
     stepWrapper.querySelector('.step-tittle').innerHTML = data.title;
-
     let missionsWrapper = stepWrapper.querySelector('.missions-wrapper');
+    missionsWrapper.innerHTML = '';
 
     for(let i in data.missions) {
         let mission = data.missions[i];
@@ -218,10 +235,8 @@ fetch(myRequest)
                 }
             }
 
-            console.log(spSc);
             // On prend la run avec le meilleur ratio SC/SP si on dépasse l'objectif on lui retire un run
             if(spSc.best.baseSpGain > mission.sp && spSc.runs.length > 1) {
-                console.log('ici');
                 spSc.best.runTodo = spSc.best.baseRun-1;
                 if(undefined !== spSc.runs[1]) {
                     spSc.runs[1].runTodo = 0;
@@ -259,7 +274,8 @@ fetch(myRequest)
 
         missionsWrapper.appendChild(elmMission);
     }
-  });
+}
+
 // spSc.runs[idxRun]
 function calculRun(objectif, run) {
     run.ratioScSp = run.sc / run.sp;
@@ -295,7 +311,6 @@ form.addEventListener('submit', (elm) => {
         };
 
         calculRun(objectif, spSc.runs[idxRun]);
-        console.log(spSc.runs[idxRun]);
 
         if(null === spSc.best
             || spSc.runs[idxRun].ratio > spSc.best.ratio)
@@ -303,7 +318,6 @@ form.addEventListener('submit', (elm) => {
             spSc.best = spSc.runs[idxRun];
         }
     });
-    console.log(spSc);
 
     // On prend la run avec le meilleur ratio SC/SP si on dépasse l'objectif on lui retire un run
     if(spSc.best.baseSpGain > objectif) {
