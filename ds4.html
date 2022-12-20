@@ -246,6 +246,8 @@ fetch(myRequest)
                 elmBestCombo.innerHTML += 'Run ' + r.sp +  ' SP</strong> : ' + r.runTodo + ' run pour <strong>' + r.scGain + ' SC</strong><br>';
             });
 
+            elmBestCombo.innerHTML += '<strong>Total SC: ' + totalScGain + '</strong>';
+
             elmHazard.appendChild(elmBestCombo);
 
             elmMission.querySelector('.mission').appendChild(elmHazard);
@@ -311,38 +313,6 @@ form.addEventListener('submit', (elm) => {
         spSc.runs[1].runTodo = 1;
         spSc.runs[2].runTodo = 1;
     }
-
-    // let baseSp = spSc.best.runTodo * spSc.best.sp;
-    // let testRun = 1;
-    // let maxTestRun = spSc.runs.length -1;
-    // let testBaseSp;
-    // while(baseSp < objectif) {
-
-    //     if(spSc.runs[testRun].run === spSc.best.run) {
-    //         spSc.runs[testRun].runTodo = spSc.runs[testRun].baseRun;
-    //     }
-    //     else {
-    //         spSc.runs[testRun].runTodo = 0;
-    //     }
-
-    //     testBaseSp = baseSp + spSc.runs[testRun].sp;
-
-    //     if(testBaseSp >= objectif  && testRun < maxTestRun) {
-    //         if(spSc.runs[testRun].runTodo > 0) {
-    //             spSc.runs[testRun].runTodo--;
-    //         }
-    //         testRun++;
-    //         continue;
-    //     }
-    //     else if (testBaseSp >= objectif && testRun === maxTestRun) {
-    //         spSc.runs[testRun].runTodo++;
-    //     }
-    //     else if (testBaseSp < objectif) {
-    //         spSc.runs[testRun].runTodo++;
-    //     }
-
-    //     baseSp = testBaseSp;
-    // }
 
     elmTopRatio = document.getElementById('run' + spSc.best.run);
     elmTopRatio.classList.add('top-ratio');
